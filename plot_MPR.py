@@ -17,17 +17,48 @@ import uwtools.api.config as uwconfig
 import cartopy
 
 
-def plotit(config_a: dict,data: pd.DataFrame,path: str) -> None:
+#def plotit(config_a: dict,data: pd.DataFrame,path: str) -> None:
+def plotit(config_a: dict) -> None:
     """
     The main program that makes the plot(s)
     """
 
     config_b = copy.deepcopy(config_a)
 
+    if os.path.isfile(confg_d["data"]["filename"]):
+        files = [confg_d["data"]["filename"]]
+    elif glob.glob(confg_d["data"]["filename"]):
+        files = sorted(glob.glob(confg_d["data"]["filename"]))
+    elif isinstance(confg_d["data"]["filename"], list):
+        files = confg_d["data"]["filename"]
+    else:
+        #raise FileNotFoundError(f"Invalid filename(s) specified:\n{confg_d['data']['filename']}")
+        files = [confg_d["data"]["filename"]]
+        print("file is not right")
+
+
+    data = []
+
+    for f in files:
+        print("Loading file " + f)
+        # Open specified file and load dataset
+        #dataset=load_dataset(f)
+        path = f
+
+    #path = '/scratch2/BMC/fv3lam/mayfield/agile_plots/stat_files/point_stat_NSSL-MPAS-HN_mem000_ADPSFC_NDAS_460000L_20240503_100000V.stat'
+
+        # The data are in a pandas.DataFrame
+        data_f = pd.read_csv(path, sep='\s+', skiprows=1, header=None, usecols=[1,9,10,15,23,26,27,28,31,32], names=['model','var','unit','type','MPR','station','latitude','longitude','obs','fcst'])
+
+        data.append(data_f.loc[data_f['MPR'] == 'MPR'])
+
+
+    data = pd.concat(data, ignore_index=True)
     expt = config_b["data"]["expt"]
-#    var = config_b["data"]["var"]
     init_beg = config_b["data"]["init_beg"]
     init_end = config_b["data"]["init_end"]
+    obtype = config_b["data"]["obtype"]
+    agg_type = config_b["plot"]["agg_type"]
 
     for var in config_b["data"]["var"]:
 
@@ -36,21 +67,30 @@ def plotit(config_a: dict,data: pd.DataFrame,path: str) -> None:
                     "var": var,
                     "init_beg": init_beg,
                     "init_end": init_end,
+                    "obtype": obtype,
                 }
 
-        print(config_b["data"]["var"])
-        print(config_b["data"]["obtype"])
-        print(config_b["plot"]["lonrange"])
+        # Select the data from the current variable
+
+        print("Aggregating data from "+str(len(files))+" files with "+str(len(data.loc[data['var'] == var]))+" MPR lines for variable "+var+" using "+agg_type)
+
+        data_agg = agg(data.loc[data['var'] == var],agg_type)
+
+        print("Plotting "+str(len(data_agg))+" unique stations")
+
+        print(data_agg)
+
         print(config_b["plot"]["filename"].format_map(patterns))
+        print(config_b["plot"]["title"].format_map(patterns))
 
-        print(config_b["plot"]["title"])
 
-
+    print(config_b["data"]["obtype"])
+    cm_config = config_b["plot"]["colormap"]
 
     # Make a Mercator map of the data using Cartopy
     plt.figure(figsize=(8, 6))
     ax = plt.axes(projection=ccrs.Mercator())
-    ax.set_title(var + ' O-F')
+    ax.set_title('F-O of '+expt + ', ' + var + ' init: ' + str(init_beg))
     ax.coastlines()
     ax.add_feature(cartopy.feature.OCEAN)
     ax.add_feature(cartopy.feature.LAND, edgecolor='black')
@@ -58,17 +98,17 @@ def plotit(config_a: dict,data: pd.DataFrame,path: str) -> None:
     ax.add_feature(cartopy.feature.STATES, edgecolor='black')
     ax.gridlines()
 
-    # Plot the air temperature as colored circles and the wind speed as vectors.
+    # Plot the air temperature residuals as colored circles.
     im = plt.scatter(
-        data.longitude,
-        data.latitude,
-        c = data.obs - data.fcst,
+        data_agg.longitude,
+        data_agg.latitude,
+        c = data_agg.fmo,
         s = 10,
-        cmap = "plasma",
+        cmap = cm_config,
         transform = ccrs.PlateCarree(),
     )
 
-    plt.colorbar(im, fraction=0.0263, pad=0.025).set_label(data['unit'].iloc[0])
+    plt.colorbar(im, fraction=0.02635, pad=0.025).set_label(data_agg['unit'].iloc[0])
     plt.tight_layout()
     plt.show()
 
@@ -77,6 +117,19 @@ def plotit(config_a: dict,data: pd.DataFrame,path: str) -> None:
     #plt.savefig(outfile)
     #plt.close()
 
+def agg(data: pd.DataFrame, agg_type = "mean"):
+    # Caluclate Forecast minus Obs
+    data['fmo'] = data['fcst'] - data['obs']
+
+    print(data)
+    
+    # Aggregate the resulting column along the stations
+    if agg_type == "mean":
+        return data.groupby('station').agg({'fmo':'mean', 'unit':'first', 'latitude':'first','longitude':'first'})
+    elif agg_type == "median":
+        return data.groupby('station').agg({'fmo':'median', 'unit':'first', 'latitude':'first','longitude':'first'})
+    else:
+        print("Invalid aggregation type")
 
 def setup_logging(logfile: str = "log.generate_FV3LAM_wflow", debug: bool = False) -> logging.Logger:
     """
@@ -157,34 +210,7 @@ if __name__ == "__main__":
     confg_d=setup_config(args.config)
 
 
-    path = '/scratch2/BMC/fv3lam/mayfield/agile_plots/stat_files/point_stat_NSSL-MPAS-HN_mem000_ADPSFC_NDAS_460000L_20240503_100000V.stat'
-    var = 'TMP'
-
-    # The data are in a pandas.DataFrame
-    #data = vd.datasets.fetch_texas_wind()
-    data = pd.read_csv(path, sep='\s+', skiprows=1, header=None, usecols=[1,9,10,15,23,26,27,28,31,32], names=['model','var','unit','type','MPR','station','latitude','longitude','obs','fcst'])
-
-    data = data.loc[data['MPR'] == 'MPR']
-    data = data.loc[data['var'] == var]
-
-    print(data)
-    print(data.head())
-
-
-    if os.path.isfile(confg_d["data"]["filename"]):
-        files = [confg_d["data"]["filename"]]
-    elif glob.glob(confg_d["data"]["filename"]):
-        files = sorted(glob.glob(confg_d["data"]["filename"]))
-    elif isinstance(confg_d["data"]["filename"], list):
-        files = confg_d["data"]["filename"]
-    else:
-        raise FileNotFoundError(f"Invalid filename(s) specified:\n{confg_d['data']['filename']}")
-
-    for f in files:
-        print(f)
-        # Open specified file and load dataset
-        #dataset=load_dataset(f)
 
 
         # Make the plots!
-    plotit(confg_d,data,path)
+    plotit(confg_d)
