@@ -18,22 +18,41 @@ import cartopy
 
 
 #def plotit(config_a: dict,data: pd.DataFrame,path: str) -> None:
-def plotit(config_a: dict) -> None:
+def plotit(confg_d: dict) -> None:
     """
     The main program that makes the plot(s)
     """
 
-    config_b = copy.deepcopy(config_a)
+    config_b = copy.deepcopy(confg_d)
 
-    if os.path.isfile(confg_d["data"]["filename"]):
-        files = [confg_d["data"]["filename"]]
-    elif glob.glob(confg_d["data"]["filename"]):
-        files = sorted(glob.glob(confg_d["data"]["filename"]))
-    elif isinstance(confg_d["data"]["filename"], list):
-        files = confg_d["data"]["filename"]
+
+    expt = config_b["data"]["expt"]
+    init_beg = config_b["data"]["init_beg"]
+    init_end = config_b["data"]["init_end"]
+    obtype = config_b["data"]["obtype"]
+    agg_type = config_b["plot"]["agg_type"]
+
+    filepatterns = {
+            "expt": expt,
+            "init_beg": init_beg,
+            "init_end": init_end,
+            "obtype": obtype,
+        }
+
+    filenames=config_b["data"]["filename"].format_map(filepatterns)
+
+    print('Filename globbing: '+filenames)
+
+    if os.path.isfile(filenames):
+        files = [filenames]
+    elif glob.glob(filenames):
+        files = sorted(glob.glob(filenames))
+    elif isinstance(filenames, list):
+        files = filenames
     else:
         #raise FileNotFoundError(f"Invalid filename(s) specified:\n{confg_d['data']['filename']}")
-        files = [confg_d["data"]["filename"]]
+        files = [filenames]
+        print(filenames)
         print("file is not right")
 
 
@@ -54,17 +73,12 @@ def plotit(config_a: dict) -> None:
 
 
     data = pd.concat(data, ignore_index=True)
-    expt = config_b["data"]["expt"]
-    init_beg = config_b["data"]["init_beg"]
-    init_end = config_b["data"]["init_end"]
-    obtype = config_b["data"]["obtype"]
-    agg_type = config_b["plot"]["agg_type"]
 
     for var in config_b["data"]["var"]:
 
         patterns = {
-                    "expt": expt,
                     "var": var,
+                    "expt": expt,
                     "init_beg": init_beg,
                     "init_end": init_end,
                     "obtype": obtype,
@@ -72,25 +86,23 @@ def plotit(config_a: dict) -> None:
 
         # Select the data from the current variable
 
-        print("Aggregating data from "+str(len(files))+" files with "+str(len(data.loc[data['var'] == var]))+" MPR lines for variable "+var+" using "+agg_type)
+        print("Aggregating data from "+str(len(files))+" files with "+str(len(data.loc[data['var'] == var]))+" MPR lines for variable "+var+" using "+agg_type+".")
 
         data_agg = agg(data.loc[data['var'] == var],agg_type)
 
-        print("Plotting "+str(len(data_agg))+" unique stations")
+        print("Plotting "+str(len(data_agg))+" unique stations.")
 
-        print(data_agg)
-
-        print(config_b["plot"]["filename"].format_map(patterns))
         print(config_b["plot"]["title"].format_map(patterns))
 
+        outfile = config_b["plot"]["filename"].format_map(patterns)
 
-    print(config_b["data"]["obtype"])
+
     cm_config = config_b["plot"]["colormap"]
 
     # Make a Mercator map of the data using Cartopy
     plt.figure(figsize=(8, 6))
     ax = plt.axes(projection=ccrs.Mercator())
-    ax.set_title('F-O of '+expt + ', ' + var + ' init: ' + str(init_beg))
+    ax.set_title('F-O\n'+expt + '\n' + var + ', 060000L, ' + str(init_beg)+"-"+str(init_end))
     ax.coastlines()
     ax.add_feature(cartopy.feature.OCEAN)
     ax.add_feature(cartopy.feature.LAND, edgecolor='black')
@@ -105,17 +117,19 @@ def plotit(config_a: dict) -> None:
         c = data_agg.fmo,
         s = 10,
         cmap = cm_config,
+    #    clim = (-2.5*np.std(data_agg.fmo),2.5*np.std(data_agg.fmo)),
+        clim = (-2.5,2.5),
         transform = ccrs.PlateCarree(),
     )
 
-    plt.colorbar(im, fraction=0.02635, pad=0.025).set_label(data_agg['unit'].iloc[0])
+    plt.colorbar(im, fraction=0.02637, pad=0.015).set_label(data_agg['unit'].iloc[0])
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
     # Make sure any subdirectories exist before we try to write the file
-    #os.makedirs(os.path.dirname(outfile),exist_ok=True)
-    #plt.savefig(outfile)
-    #plt.close()
+    os.makedirs(os.path.dirname(outfile),exist_ok=True)
+    plt.savefig(outfile)
+    plt.close()
 
 def agg(data: pd.DataFrame, agg_type = "mean"):
     # Caluclate Forecast minus Obs

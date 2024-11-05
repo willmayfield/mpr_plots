@@ -1,19 +1,20 @@
 data:
   # experiment
-  expt: hrrr_hwt2024 
+  expt: nssl-mpas-rt_hwt2024 
   # initializations to grab data from
-  init_beg: 2024050112
-  init_end: 2024050312
+  init_beg: 2024042912
+  init_end: 2024053112
   # Full or relative path to filename containing MET MPR data you wish to plot. Can be a single file,
   # a glob-able regex pattern match (e.g. /path/to/nc/data/*.nc), or a list of files
   #filename: '/scratch2/BMC/fv3lam/RRFS_prototype/expt_dirs/nssl-mpas-hn_hwt2024/2024050112/metprd/PointStat/point_stat_NSSL-MPAS-HN_mem000_ADPSFC_NDAS_020000L_20240501_140000V.stat'
-  filename: '/scratch2/BMC/fv3lam/RRFS_prototype/expt_dirs/hrrr_hwt2024/2024050112/metprd/PointStat/*.stat'
+  #filename: '/scratch2/BMC/fv3lam/RRFS_prototype/expt_dirs/{expt}/2024050112/metprd/PointStat/*.stat'
+  filename: '/scratch2/BMC/fv3lam/RRFS_prototype/expt_dirs/{expt}/??????????/metprd/PointStat/*{obtype}*060000L*.stat'
   #filename: '/scratch2/BMC/fv3lam/RRFS_prototype/expt_dirs/{expt}/{init_beg}/metprd/PointStat/*.stat'
   # Variable name to plot as a list. Currently only supports one variable name.
   var:
     - TMP
-  obtype:
-    - ADPSFC
+  obtype: ADPSFC
+  #  - ADPSFC
 plot:
   # The filename and title of the output plot(s). You can reference the following variables in the resulting plots:
   # {var} = Variable name
@@ -35,7 +36,7 @@ plot:
 #    - -110
 #    - -30
   # Aggregation metric, current;ly 'mean' or 'median'
-  agg_type: 'median'
+  agg_type: 'mean'
   # Colorbar settings: Will not include colorbar if this section is omitted
   colorbar:
     #"horizontal" or "vertical" (don't use this yet)
@@ -43,7 +44,7 @@ plot:
     # Text to tabel colorbar; can use variables described at start of "plot:" section
     label: 'Units: {units}'
   # Colormap for output from Matplotlib. Reference: https://matplotlib.org/stable/gallery/color/colormap_reference.html
-  colormap: "viridis"
+  colormap: 'seismic'
   # Image dots per inch
   dpi: 300
   # Image height in inches
