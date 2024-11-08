@@ -1,6 +1,6 @@
 data:
   # experiment
-  expt: nssl-mpas-rt_hwt2024 
+  expt: hrrr_hwt2024 
   # initializations to grab data from
   init_beg: 2024042912
   init_end: 2024053112
@@ -44,7 +44,7 @@ plot:
     # Text to tabel colorbar; can use variables described at start of "plot:" section
     label: 'Units: {units}'
   # Colormap for output from Matplotlib. Reference: https://matplotlib.org/stable/gallery/color/colormap_reference.html
-  colormap: 'seismic'
+  colormap: 'PRGn'
   # Image dots per inch
   dpi: 300
   # Image height in inches

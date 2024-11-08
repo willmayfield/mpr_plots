@@ -67,7 +67,7 @@ def plotit(confg_d: dict) -> None:
     #path = '/scratch2/BMC/fv3lam/mayfield/agile_plots/stat_files/point_stat_NSSL-MPAS-HN_mem000_ADPSFC_NDAS_460000L_20240503_100000V.stat'
 
         # The data are in a pandas.DataFrame
-        data_f = pd.read_csv(path, sep='\s+', skiprows=1, header=None, usecols=[1,9,10,15,23,26,27,28,31,32], names=['model','var','unit','type','MPR','station','latitude','longitude','obs','fcst'])
+        data_f = pd.read_csv(path, sep='\s+', skiprows=1, header=None, usecols=[1,9,10,15,23,26,27,28,31,32], names=['model','var','unit','type','MPR','station','latitude','longitude','fcst','obs'])
 
         data.append(data_f.loc[data_f['MPR'] == 'MPR'])
 
